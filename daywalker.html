@@ -1,0 +1,253 @@
+<html>
+<head>
+<title>Daywalker 0.1</title>
+</head>
+<body>
+
+<div id="section1">
+<div id="current-time">NOW</div>
+<input type="text" id="dayw-cmd" name="cmd" autofocus="true" style="right:100%;width:90%;"><br>
+</div>
+
+<div id="dayw-tasks">
+<button onclick="dayw.ui.addNew(this)" value="+">+</button>
+<button onclick="dayw.ui.doAction(this)" value="idle">idle</button>
+</div>
+
+<div id="section3">
+<div id="dayw-status">Test Output</div>
+</div>
+
+<script>
+var dayw = {}
+dayw.ui = {}
+dayw.ui.cmd = document.getElementById("dayw-cmd")
+dayw.ui.buttons = document.getElementById("dayw-tasks")
+dayw.ui.status = document.getElementById("dayw-status")
+dayw.ui.now = document.getElementById("current-time")
+
+// addNew (ui): Add a new user-defined Action and save it; attached to the "+" button
+dayw.ui.addNew = function(button) {
+  const action = dayw.ui.cmd.value
+  if (action === "") {
+    console.log("ERROR: empty Action name")
+    return
+  }
+  if (dayw.tm.addUserAction(action)) {
+    dayw.ui.addTaskButton(action)
+    dayw.ui.cmd.value = ""
+  }
+  console.log("addNew: " + action)
+}
+
+dayw.ui.doAction = function(button) {
+  console.log("button action: " + button.value);
+  dayw.ui.status.textContent += ' ' + button.value;
+  dayw.tm.doAction(button.value);
+  dayw.ui.showCurrentAction(new Date(), button.value)
+
+}
+dayw.ui.addTaskButton = function(name) {
+  if (name === "") {
+    console.log("ERROR: empty name (dayw.ui.addTaskButton)")
+    return false
+  }
+  const button = document.createElement('button');
+  button.textContent = name;
+  button.value = name;
+  button.addEventListener('click', function() {
+    console.log("Button: " + this.value);
+    dayw.ui.status.textContent += ' ' + this.value;
+    dayw.tm.doAction(this.value);
+  });
+  this.buttons.appendChild(button);
+}
+dayw.ui.showCurrentAction = function(dt, action) {
+  dayw.ui.status.textContent = "started " + action + " " + dayw.dt.getPastStr(dt)
+}
+
+
+// Date-Time
+dayw.dt = {}
+dayw.dt.hrsPerDay = 24
+dayw.dt.msPerDay = 24 * 60 * 60 * 1000
+dayw.dt.dom = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+dayw.dt.days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+dayw.dt.nowstr = function() {
+  const date = new Date()
+  const dayOfWeek = this.days[date.getDay()]
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const meridiem = hours >= 12 ? 'PM' : 'AM';
+  const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
+  const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+  const formattedDateTime = `${dayOfWeek} ${formattedHours}:${formattedMinutes} ${meridiem}`;
+  return formattedDateTime;
+}
+dayw.dt.getPastStr = function(past) {
+  console.log("getPastStr")
+  const t = new Date().getTime()
+  t0 = past.getTime()
+  if ((t - t0) < this.msPerDay) {
+    const hours = past.getHours();
+    const minutes = past.getMinutes();
+    const meridiem = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+    const formattedDateTime = `at ${formattedHours}:${formattedMinutes} ${meridiem}`;
+    return formattedDateTime  
+  }
+  return "far in the past"
+}
+
+/// keyToDate: a key is a character followed by a timestamp in milliseconds
+dayw.dt.keyToDate = function(key) {
+  return new Date(parseInt(key.substr(5), 10))
+}
+
+dayw.dt.keyToMs = function(key) {
+  return parseInt(key.substr(5), 10)
+}
+
+dayw.dt.durationStr = function(sCur, sPrev) {
+  const ms = dayw.dt.keyToMs(sCur) - dayw.dt.keyToMs(sPrev)
+  if (ms < 60000) {
+    return "" + (ms/1000) + " seconds"
+  } else if (ms < 3600000) {
+    return "" + (ms/60000) + " mins"
+  } else {
+    return "" + (ms/3600000) + " hrs"
+  }
+}
+
+dayw.ui.updateNow = function() {
+  dayw.ui.now.textContent = dayw.dt.nowstr()
+  document.head.title = dayw.dt.nowstr()
+}
+
+// Time Management
+dayw.tm = {}
+dayw.tm.predefinedActions = []
+dayw.tm.userActions = []
+dayw.tm.currentTask = 'idle'
+
+dayw.tm.addAction = function(name) {
+  dayw.tm.predefinedActions.push(name)
+  dayw.ui.addTaskButton(name)
+}
+
+dayw.tm.doAction = function(action) {
+  const now = new Date();
+  const key = 'daywt' + now.getTime()
+  localStorage.setItem(key, action)
+  const prev = 'daywp' + now.getTime()
+  const cur = localStorage.getItem("dayw-current-action")
+  if (cur) {
+    localStorage.setItem(prev, cur)
+  }
+  localStorage.setItem("dayw-current-action", key)
+}
+
+dayw.tm.addUserAction = function(name) {
+  if (dayw.tm.predefinedActions.includes(name)) {
+    return false
+  }
+  if (dayw.tm.userActions.includes(name)) {
+    return false
+  }
+  // todo: check validity of name as an action
+  dayw.tm.userActions.push(name)
+  const userActionStr = dayw.tm.userActions.join(",")
+  localStorage.setItem("dayw-user-actions", userActionStr)
+  return true
+}
+
+dayw.tm.exportToConsole = function() {
+  console.log("EXPORT")
+  const n = localStorage.length
+  for (let i=0; i<n; i++) {
+    const k = localStorage.key(i)
+    const v = localStorage.getItem(k)
+    console.log(k + ' ' + v)
+  }
+}
+
+dayw.tm.startup = function() {
+  const userActionStr = localStorage.getItem("dayw-user-actions")
+  console.log("STARTUP: dayw-user-actions = " + userActionStr)
+  if (userActionStr) {
+    dayw.tm.userActions = userActionStr.split(',')
+    for (const action of dayw.tm.userActions) {
+      console.log("STARTUP: add user action " + action)
+      dayw.ui.addTaskButton(action)
+    }
+  }
+
+  const cur = localStorage.getItem("dayw-current-action")
+  console.log("STARTUP: dayw-current-action = " + cur)
+  if (cur) {
+    const t = new Date(parseInt(cur.substr(5),10))
+    const a = localStorage.getItem(cur)
+    dayw.ui.showCurrentAction(t, a)
+  }
+  
+  const debugSavedActions = 1
+  if (debugSavedActions) {
+    let a = cur
+    while (a) {
+      const c = a
+      
+      const p = 'daywp'+ a.substr(5)
+      a = localStorage.getItem(p)
+      if (a)
+        console.log("DEBUG actions: " + c + " = " + localStorage.getItem(c) + " " + dayw.dt.durationStr(c,a))
+      else
+        console.log("DEBUG actions: " + c + " = " + localStorage.getItem(c))
+    }
+  }
+
+  dayw.tm.exportToConsole()
+}
+
+dayw.ui.status.innerHTML = "This is the status"
+
+dayw.ui.updateNow()
+setInterval(dayw.ui.updateNow, 1000)
+
+dayw.tm.addAction("Sleep")
+dayw.tm.addAction("Drive")
+dayw.tm.startup()
+
+</script>
+
+</body>
+</html>
+
+<style>
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+#section1 {
+  height: 12%;
+  background-color: #f0f0f0;
+  box-sizing: border-box;
+}
+#dayw-tasks {
+  height:74%;
+  background-color: #e0e0e0;
+  box-sizing: border-box;
+  padding: 1vh;
+}
+#section3 {
+  height: 15%;
+  background-color: #d0d0d0;
+  box-sizing: border-box;
+  padding: 1vh;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+</style>
