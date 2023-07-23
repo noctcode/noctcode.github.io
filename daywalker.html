@@ -6,13 +6,11 @@
 
 <div id="section1">
 <div id="current-time">NOW</div>
-<input type="text" id="dayw-cmd" name="cmd" autofocus="true" style="right:100%;width:90%;"><br>
+<input type="text" id="dayw-cmd" name="cmd" autofocus="true" style="right:100%;width:100%;"><br>
 </div>
 
 <div id="dayw-tasks">
-<button onclick="dayw.ui.addNew(this)" value="+">+</button>
-<button onclick="dayw.ui.doAction(this)" value="idle">idle</button>
-</div>
+<button onclick="dayw.ui.addNew(this)" value="+">+</button><button onclick="dayw.ui.doAction(this)" value="idle">idle</button></div>
 
 <div id="section3">
 <div id="dayw-status">Test Output</div>
@@ -240,9 +238,11 @@ body {
   background-color: #f0f0f0;
   box-sizing: border-box;
 }
+#current-time { width: 100%; text-align: center; }
 input, button {
   font-size: 4vh;
 }
+button { margin-right: 1vh; }
 #dayw-tasks {
   height:72vh;
   background-color: #e0e0e0;
