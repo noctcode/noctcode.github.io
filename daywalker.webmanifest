@@ -1,4 +1,5 @@
 {
   "name":"Daywalker",
-  "display":"standalone"
+  "start_url": "/daywalker.html",
+  "display": "standalone"
 }

@@ -2,7 +2,7 @@
 <html>
 <head>
 <title>Daywalker 0.1</title>
-<link rel="manifest" href="daywalker.webmanifest">
+<link rel="manifest" href="/daywalker.webmanifest">
 </head>
 <body>
 
@@ -44,9 +44,10 @@ dayw.ui.addNew = function(button) {
 
 dayw.ui.doAction = function(button) {
   console.log("button action: " + button.value);
-  dayw.ui.status.textContent += ' ' + button.value;
-  dayw.tm.doAction(button.value);
-  dayw.ui.showCurrentAction(new Date(), button.value)
+  //dayw.ui.status.textContent += ' ' + button.value;
+  const action = button.value
+  now = dayw.tm.doAction(button.value);
+  dayw.ui.showCurrentAction(now, action)
 
 }
 dayw.ui.addTaskButton = function(name) {
@@ -58,14 +59,17 @@ dayw.ui.addTaskButton = function(name) {
   button.textContent = name;
   button.value = name;
   button.addEventListener('click', function() {
-    console.log("Button: " + this.value);
-    dayw.ui.status.textContent += ' ' + this.value;
-    dayw.tm.doAction(this.value);
+    const action = this.value
+    console.log("Button: " + action);
+    now = dayw.tm.doAction(action);
+    dayw.ui.showCurrentAction(now, action);
   });
   this.buttons.appendChild(button);
 }
 dayw.ui.showCurrentAction = function(dt, action) {
-  dayw.ui.status.textContent = "started " + action + " " + dayw.dt.getPastStr(dt)
+  const s = "" + action + " " + dayw.dt.getPastStr(dt)
+  console.log("show: " + s)
+  dayw.ui.status.textContent = "" + action + " " + dayw.dt.getPastStr(dt) + " (" + dayw.dt.durationStr( dayw.dt.nowKey(), "xxxxx"+dt.getTime()) +")"
 }
 
 
@@ -100,6 +104,10 @@ dayw.dt.getPastStr = function(past) {
     return formattedDateTime  
   }
   return "far in the past"
+}
+
+dayw.dt.nowKey = function() {
+  return 'daywt' + new Date().getTime()
 }
 
 /// keyToDate: a key is a character followed by a timestamp in milliseconds
@@ -148,6 +156,7 @@ dayw.tm.doAction = function(action) {
     localStorage.setItem(prev, cur)
   }
   localStorage.setItem("dayw-current-action", key)
+  return now
 }
 
 dayw.tm.addUserAction = function(name) {
