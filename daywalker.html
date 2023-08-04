@@ -27,6 +27,7 @@ dayw.ui.cmd = document.getElementById("dayw-cmd")
 dayw.ui.buttons = document.getElementById("dayw-tasks")
 dayw.ui.status = document.getElementById("dayw-status")
 dayw.ui.now = document.getElementById("current-time")
+dayw.ui.currentActionMsg="No Actions"
 
 // addNew (ui): Add a new user-defined Action and save it; attached to the "+" button
 dayw.ui.addNew = function(button) {
@@ -67,9 +68,12 @@ dayw.ui.addTaskButton = function(name) {
   this.buttons.appendChild(button);
 }
 dayw.ui.showCurrentAction = function(dt, action) {
-  const s = "" + action + " " + dayw.dt.getPastStr(dt)
-  console.log("show: " + s)
-  dayw.ui.status.textContent = "" + action + " " + dayw.dt.getPastStr(dt) + " (" + dayw.dt.durationStr( dayw.dt.nowKey(), "xxxxx"+dt.getTime()) +")"
+  const s = "" + action + " " + dayw.dt.getPastStr(dt) + " (" + dayw.dt.durationStr( dayw.dt.nowKey(), "xxxxx"+dt.getTime()) +")"
+  if (s != dayw.ui.currentActionMsg) {
+    console.log("show: " + s)
+    dayw.ui.status.textContent = s
+    dayw.ui.currentActionMsg = s
+  }
 }
 
 
@@ -122,11 +126,11 @@ dayw.dt.keyToMs = function(key) {
 dayw.dt.durationStr = function(sCur, sPrev) {
   const ms = dayw.dt.keyToMs(sCur) - dayw.dt.keyToMs(sPrev)
   if (ms < 60000) {
-    return "" + (ms/1000) + " seconds"
+    return "" + (ms/1000).toFixed(0) + " seconds"
   } else if (ms < 3600000) {
-    return "" + (ms/60000) + " mins"
+    return "" + (ms/60000).toFixed(0) + " mins"
   } else {
-    return "" + (ms/3600000) + " hrs"
+    return "" + (ms/3600000).toFixed(1) + " hrs"
   }
 }
 
