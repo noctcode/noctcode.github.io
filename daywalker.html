@@ -8,6 +8,7 @@
 
 <div id="section1">
 &#9776; <span id="current-time">NOW</span>
+<div style="display:none;">Font Size <input id="dayw-font-size" type="number" min="6" step="0.5" size="4" name="font-size" value="12"> <button>Set</button></div>
 <input type="text" id="dayw-cmd" name="cmd" autofocus="true" style="right:100%;width:100%;"><br>
 </div>
 
@@ -242,7 +243,7 @@ dayw.tm.startup()
 
 html,
 body {
-  font-size: 4vh;
+  font-size: x-large; /*4vh;*/
   height: 100%;
   margin: 0;
   padding: 0;
@@ -255,7 +256,7 @@ body {
 }
 #current-time { width: 100%; text-align: center; }
 input, button {
-  font-size: 4vh;
+  font-size: inherit;
 }
 button { margin-right: 1vh; margin-bottom: 1vh; }
 #dayw-tasks {
