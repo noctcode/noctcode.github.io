@@ -18,7 +18,7 @@
 
 <div id="footer">
 <div id="dayw-status">Test Output</div>
-<div id="dayw-shortcuts"><button onclick="location.reload();">&#x27F3;</button><img src="daywalker.png" width="6vw" height="6vw"/> </div>
+<div id="dayw-shortcuts"><button onclick="location.reload();">&#x27F3;</button> <button onclick="dayw.tm.exportToClipboard();">C</button></div>
 </div>
 
 <script>
@@ -178,6 +178,18 @@ dayw.tm.addUserAction = function(name) {
   return true
 }
 
+dayw.tm.exportToClipboard = function() {
+  let k = localStorage.getItem("dayw-current-action")
+  let out = ""
+  while (k) {
+    const ms = k.substr(5)
+	const a = localStorage.getItem(k)
+    out = ms + ' ' + a + '\n' + out
+	k = localStorage.getItem('daywp' + ms)
+  }
+  let p = navigator.clipboard.writeText(out)
+}
+
 dayw.tm.exportToConsole = function() {
   console.log("EXPORT")
   const n = localStorage.length
@@ -243,7 +255,7 @@ dayw.tm.startup()
 
 html,
 body {
-  font-size: 6vw; /*4vh;*/
+  font-size: 6vw;
   height: 100%;
   margin: 0;
   padding: 0;
