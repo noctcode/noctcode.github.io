@@ -1,5 +1,14 @@
 {
+  "short_name": "Daywalker",
   "name":"Daywalker",
+  "icons": [
+    {
+      "src": "/daywalker.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+  "id": "/daywalker.html",
   "start_url": "/daywalker.html",
   "display": "standalone"
 }
