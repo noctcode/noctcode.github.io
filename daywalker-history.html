@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="manifest" href="/daywalker.webmanifest" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daywalker History 0.1</title>
+</head>
+<body>
+
+<div id="header">
+&nbsp;&#9776; <span id="current-time">NOW</span>
+<div style="display:none;">Font Size <input id="dayw-font-size" type="number" min="6" step="0.5" size="4" name="font-size" value="12"> <button>Set</button></div>
+<input type="text" id="dayw-cmd" name="cmd" autofocus="true" style="right:100%;width:100%;"><br>
+</div>
+
+<div id="dayw-history">
+</div>
+
+<div id="footer">
+<div id="dayw-shortcuts"><button onclick="location.reload();">&#x27F3;</button> <button onclick="dayw.tm.exportToClipboard();">C</button></div>
+</div>
+
+<script>
+var dayw = {}
+dayw.ui = {}
+dayw.ui.cmd = document.getElementById("dayw-cmd")
+dayw.ui.now = document.getElementById("current-time")
+dayw.ui.history = document.getElementById("dayw-history")
+dayw.ui.currentActionMsg="No Actions"
+
+
+dayw.ui.addTaskButton = function(name) {
+  if (name === "") {
+    console.log("ERROR: empty name (dayw.ui.addTaskButton)")
+    return false
+  }
+  const button = document.createElement('button');
+  button.textContent = name;
+  button.value = name;
+  button.addEventListener('click', function() {
+    const action = this.value
+    console.log("Button: " + action);
+    now = dayw.tm.doAction(action);
+    dayw.ui.showCurrentAction(now, action);
+  });
+  this.buttons.appendChild(button);
+}
+dayw.ui.showCurrentAction = function(dt, action) {
+  const s = "" + action + " " + dayw.dt.getPastStr(dt) + " (" + dayw.dt.durationStr( dayw.dt.nowKey(), "xxxxx"+dt.getTime()) +")"
+  if (s != dayw.ui.currentActionMsg) {
+    console.log("show: " + s)
+    dayw.ui.status.textContent = s
+    dayw.ui.currentActionMsg = s
+  }
+}
+
+
+// Date-Time
+dayw.dt = {}
+dayw.dt.hrsPerDay = 24
+dayw.dt.msPerDay = 24 * 60 * 60 * 1000
+dayw.dt.dom = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+dayw.dt.days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+dayw.dt.shortdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+dayw.dt.shortmonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+dayw.dt.nowstr = function() {
+  const date = new Date()
+  const dayOfWeek = this.days[date.getDay()]
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const meridiem = hours >= 12 ? 'PM' : 'AM';
+  const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
+  const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+  const formattedDateTime = `${dayOfWeek} ${formattedHours}:${formattedMinutes} ${meridiem}`;
+  return formattedDateTime;
+}
+dayw.dt.getPastStr = function(past) {
+  console.log("getPastStr")
+  const t = new Date().getTime()
+  t0 = past.getTime()
+  if ((t - t0) < this.msPerDay) {
+    const hours = past.getHours();
+    const minutes = past.getMinutes();
+    const meridiem = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+    const formattedDateTime = `at ${formattedHours}:${formattedMinutes} ${meridiem}`;
+    return formattedDateTime  
+  }
+  return "far in the past"
+}
+
+dayw.dt.nowKey = function() {
+  return 'daywt' + new Date().getTime()
+}
+
+/// keyToDate: a key is a character followed by a timestamp in milliseconds
+dayw.dt.keyToDate = function(key) {
+  return new Date(parseInt(key.substr(5), 10))
+}
+
+dayw.dt.keyToMs = function(key) {
+  return parseInt(key.substr(5), 10)
+}
+
+dayw.dt.durationStr = function(sCur, sPrev) {
+  const ms = dayw.dt.keyToMs(sCur) - dayw.dt.keyToMs(sPrev)
+  if (ms < 60000) {
+    return "-"
+    //return "" + (ms/1000).toFixed(0) + " seconds"
+  } else if (ms < 3600000) {
+    return "" + (ms/60000).toFixed(0) + " mins"
+  } else if (ms < 86400000) {
+    return "" + (ms/3600000).toFixed(1) + " hrs"
+  } else {
+    return "" + (ms/86400000).toFixed(1) + " days"
+  }
+}
+
+dayw.dt.msToHistory = function(ms) {
+  if (!ms) {
+    return '???'
+  }
+  if (typeof ms == "string") {
+    ms = parseInt(ms, 10)
+  }
+  const t = new Date(ms)
+  const mon = t.getMonth()
+  const monstr = dayw.dt.shortmonths[mon]
+  let s = dayw.dt.shortdays[t.getDay()] + ' ' + monstr + ' ' + t.getDate()
+  return s
+}
+
+dayw.dt.msToTime = function(ms) {
+  if (!ms) {
+    return '??:?? ??'
+  }
+  if (typeof ms == "string") {
+    ms = parseInt(ms, 10)
+  }
+  const t = new Date(ms)
+  const h = t.getHours();
+  const m = t.getMinutes();
+  const meridiem = h >= 12 ? 'p' : 'a';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const m00 = m < 10 ? '0' + m : m;
+  return `${h12}:${m00}${meridiem}`;
+}
+
+dayw.ui.updateNow = function() {
+  dayw.ui.now.textContent = dayw.dt.nowstr()
+  document.head.title = dayw.dt.nowstr()
+}
+
+// Time Management
+dayw.tm = {}
+dayw.tm.predefinedActions = []
+dayw.tm.userActions = []
+dayw.tm.currentTask = 'idle'
+dayw.tm.history = {}
+
+dayw.tm.addAction = function(name) {
+  dayw.tm.predefinedActions.push(name)
+  dayw.ui.addTaskButton(name)
+}
+
+dayw.tm.doAction = function(action) {
+  const now = new Date();
+  const key = 'daywt' + now.getTime()
+  localStorage.setItem(key, action)
+  const prev = 'daywp' + now.getTime()
+  const cur = localStorage.getItem("dayw-current-action")
+  if (cur) {
+    localStorage.setItem(prev, cur)
+  }
+  localStorage.setItem("dayw-current-action", key)
+  return now
+}
+
+dayw.tm.addUserAction = function(name) {
+  if (dayw.tm.predefinedActions.includes(name)) {
+    return false
+  }
+  if (dayw.tm.userActions.includes(name)) {
+    return false
+  }
+  // todo: check validity of name as an action
+  dayw.tm.userActions.push(name)
+  const userActionStr = dayw.tm.userActions.join(",")
+  localStorage.setItem("dayw-user-actions", userActionStr)
+  return true
+}
+
+dayw.tm.exportToClipboard = function() {
+  let k = localStorage.getItem("dayw-current-action")
+  let out = ""
+  while (k) {
+    const ms = k.substr(5)
+	const a = localStorage.getItem(k)
+    out = ms + ' ' + a + '\n' + out
+	k = localStorage.getItem('daywp' + ms)
+  }
+  let p = navigator.clipboard.writeText(out)
+}
+
+dayw.tm.exportToConsole = function() {
+  console.log("EXPORT")
+  const n = localStorage.length
+  for (let i=0; i<n; i++) {
+    const k = localStorage.key(i)
+    const v = localStorage.getItem(k)
+    console.log(k + ' ' + v)
+  }
+}
+
+// Parse history from string containing patterns "{ms} {action}\n"...
+dayw.tm.parseHistory = function(s) {
+
+}
+
+dayw.tm.readHistory = function() {
+
+  let k = localStorage.getItem("dayw-current-action")
+  dayw.tm.history.first = k.substr(5)
+  let next = new Date().getTime()
+  while (k) {
+    let a = localStorage.getItem(k)
+    let entry = {}
+    entry.tstr = k.substr(5)
+    entry.dt = new Date(parseInt(entry.tstr,10))
+    entry.action = a
+    entry.tstr_next = next
+    next = entry.tstr
+    k = localStorage.getItem("daywp" + k.substr(5))
+    if (k) {
+      entry.tstr_prev = k.substr(5)
+      entry.dt_prev = new Date(parseInt(entry.tstr,10))
+    } else {
+      entry.tstr_prev = ""
+      entry.dt_prev = null
+    }
+    dayw.tm.history[entry.tstr] = entry
+  }
+}
+
+function td(s) {
+  return '<td>'+s+'</td>'
+}
+
+const nbsp = '&nbsp;'
+
+dayw.ui.showHistory = function() {
+  let html = '<table>'
+  let lastdt = "none"
+  let t = localStorage.getItem("dayw-current-action").substr(5)
+  while (t) {
+    let h = dayw.tm.history[t]
+    const hhmm = dayw.dt.msToTime(h.tstr) + nbsp
+    let dt = dayw.dt.msToHistory(h.tstr)
+    if (dt != lastdt) {
+      lastdt = dt
+    } else {
+      dt = "*"
+    }
+    const dur = dayw.dt.durationStr('xxxxx'+h.tstr_next, 'xxxxx' + h.tstr) + nbsp
+    html += '<tr>'+ td(h.action+nbsp) + td(hhmm) + td(dur) + td(dt) + '</tr>'
+    t = h.tstr_prev
+  }
+  html += '</table>'
+  
+  dayw.ui.history.innerHTML = html
+}
+
+dayw.ui.updateNow()
+setInterval(dayw.ui.updateNow, 1000)
+dayw.tm.readHistory()
+dayw.ui.showHistory()
+
+</script>
+
+</body>
+</html>
+
+<style>
+
+html,
+body {
+  font-size: 6vw;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+#header {
+  flex: 0 0 auto;
+  padding: 1vw;
+  //height: 12vw;
+  background-color: #f0f0f0;
+  box-sizing: border-box;
+}
+#current-time { width: 100%; text-align: center; }
+input, button {
+  font-size: inherit;
+}
+button { margin-right: 1vw; margin-bottom: 1vw; }
+#dayw-history {
+  flex: 1;
+  background-color: #e0e0e0;
+  box-sizing: border-box;
+  padding: 1vw;
+  overflow: auto;
+}
+#footer {
+  flex: 0 0 auto;
+  //height: 16vh;
+  background-color: #d0d0d0;
+  box-sizing: border-box;
+  padding: 1vh;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+</style>
